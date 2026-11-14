@@ -161,6 +161,42 @@ private fun StandardKeyboardMatrix(
         }
     }
 
+    fun getSecondaryHint(key: String): String? {
+        if (state.isSymbolsMode) return null
+        return when (state.layoutMode) {
+            TypingLayout.PROBHAT -> ProbhatBanglaLayout.getSecondaryChar(key, state.isShifted)
+            TypingLayout.SOHOJ -> {
+                val sohojMap = mapOf(
+                    "ঙ" to "ং", "য" to "্য", "ড" to "ঢ", "প" to "ফ", "ট" to "ঠ",
+                    "চ" to "ছ", "জ" to "ঝ", "হ" to "ঞ", "গ" to "ঘ", "ড়" to "ঢ়",
+                    "ৃ" to "ঃ", "ভ" to "ভ", "থ" to "ঠ", "দ" to "ধ", "শ" to "ষ",
+                    "স" to "স", "ব" to "ব", "ন" to "ণ", "ম" to "ম",
+                    "ো" to "ৌ", "ে" to "ৈ", "া" to "া", "ি" to "ী", "ু" to "ূ",
+                    "ল" to "ল", "ত" to "থ"
+                )
+                sohojMap[key]
+            }
+            TypingLayout.ENGLISH -> {
+                val numMap = mapOf(
+                    "q" to "1", "w" to "2", "e" to "3", "r" to "4", "t" to "5",
+                    "y" to "6", "u" to "7", "i" to "8", "o" to "9", "p" to "0",
+                    "a" to "@", "s" to "#", "d" to "$", "f" to "_", "g" to "&",
+                    "h" to "-", "j" to "+", "k" to "(", "l" to ")"
+                )
+                numMap[key]
+            }
+            else -> null
+        }
+    }
+
+    fun getLongPressHint(key: String): String? {
+        if (state.isSymbolsMode) return null
+        return when (state.layoutMode) {
+            TypingLayout.PROBHAT -> ProbhatBanglaLayout.getLongPressChar(key, state.isShifted)
+            else -> null
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(1.dp)
@@ -173,13 +209,19 @@ private fun StandardKeyboardMatrix(
                     .padding(horizontal = 2.dp)
             ) {
                 matrix[0].forEach { keyChar ->
+                    val secondary = getSecondaryHint(keyChar)
+                    val longPress = getLongPressHint(keyChar)
                     KeyButton(
                         modifier = Modifier.weight(1f),
                         label = keyChar,
+                        secondaryLabel = secondary,
                         backgroundColor = palette.keyBackground,
                         textColor = palette.textPrimary,
                         height = keyHeight,
-                        onClick = { onKeyClick(keyChar) }
+                        dragToTypeShiftEnabled = state.dragToTypeShiftEnabled,
+                        onClick = { onKeyClick(keyChar) },
+                        onDragAction = { shiftChar -> onKeyClick(shiftChar) },
+                        onLongPress = { if (longPress != null) onKeyClick(longPress) }
                     )
                 }
             }
@@ -197,13 +239,19 @@ private fun StandardKeyboardMatrix(
                     Spacer(modifier = Modifier.weight(0.5f))
                 }
                 matrix[1].forEach { keyChar ->
+                    val secondary = getSecondaryHint(keyChar)
+                    val longPress = getLongPressHint(keyChar)
                     KeyButton(
                         modifier = Modifier.weight(1f),
                         label = keyChar,
+                        secondaryLabel = secondary,
                         backgroundColor = palette.keyBackground,
                         textColor = palette.textPrimary,
                         height = keyHeight,
-                        onClick = { onKeyClick(keyChar) }
+                        dragToTypeShiftEnabled = state.dragToTypeShiftEnabled,
+                        onClick = { onKeyClick(keyChar) },
+                        onDragAction = { shiftChar -> onKeyClick(shiftChar) },
+                        onLongPress = { if (longPress != null) onKeyClick(longPress) }
                     )
                 }
                 if (needSpacer) {
@@ -219,6 +267,9 @@ private fun StandardKeyboardMatrix(
                     .fillMaxWidth()
                     .padding(horizontal = 2.dp)
             ) {
+                val isNineKeyRow = matrix[2].size >= 9
+                val sideWeight = if (isNineKeyRow) 1.25f else 1.4f
+
                 // Shift Key
                 val shiftLabel = when {
                     state.isSymbolsMode -> if (state.isMoreSymbolsMode) "1/2" else "2/2"
@@ -237,11 +288,12 @@ private fun StandardKeyboardMatrix(
                 }
 
                 KeyButton(
-                    modifier = Modifier.weight(1.4f),
+                    modifier = Modifier.weight(sideWeight),
                     label = shiftLabel,
                     backgroundColor = shiftBgColor,
                     textColor = shiftTextColor,
                     height = keyHeight,
+                    dragToTypeShiftEnabled = false,
                     onClick = {
                         if (state.isSymbolsMode) {
                             state.toggleMoreSymbols()
@@ -253,23 +305,30 @@ private fun StandardKeyboardMatrix(
 
                 // Middle Character Keys
                 matrix[2].forEach { keyChar ->
+                    val secondary = getSecondaryHint(keyChar)
+                    val longPress = getLongPressHint(keyChar)
                     KeyButton(
                         modifier = Modifier.weight(1f),
                         label = keyChar,
+                        secondaryLabel = secondary,
                         backgroundColor = palette.keyBackground,
                         textColor = palette.textPrimary,
                         height = keyHeight,
-                        onClick = { onKeyClick(keyChar) }
+                        dragToTypeShiftEnabled = state.dragToTypeShiftEnabled,
+                        onClick = { onKeyClick(keyChar) },
+                        onDragAction = { shiftChar -> onKeyClick(shiftChar) },
+                        onLongPress = { if (longPress != null) onKeyClick(longPress) }
                     )
                 }
 
                 // Backspace Key
                 KeyButton(
-                    modifier = Modifier.weight(1.4f),
+                    modifier = Modifier.weight(sideWeight),
                     label = "⌫",
                     backgroundColor = palette.keyActionBackground,
                     textColor = palette.textPrimary,
                     height = keyHeight,
+                    dragToTypeShiftEnabled = false,
                     onClick = onBackspace
                 )
             }

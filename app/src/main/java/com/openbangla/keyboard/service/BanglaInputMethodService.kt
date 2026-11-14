@@ -152,6 +152,11 @@ class BanglaInputMethodService : InputMethodService(),
                 preferences.activeLayoutFlow.collect { layout -> layoutState.layoutMode = layout }
             } catch (e: Throwable) { e.printStackTrace() }
         }
+        serviceScope.launch {
+            try {
+                preferences.dragToTypeShiftFlow.collect { enabled -> layoutState.dragToTypeShiftEnabled = enabled }
+            } catch (e: Throwable) { e.printStackTrace() }
+        }
     }
 
     override fun onConfigureWindow(win: Window, isFullscreen: Boolean, isCandidatesOnly: Boolean) {

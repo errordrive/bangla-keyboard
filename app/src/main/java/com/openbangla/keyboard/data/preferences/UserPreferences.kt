@@ -38,6 +38,7 @@ class UserPreferences(private val context: Context) {
         val KEY_AUTOCORRECT = booleanPreferencesKey("pref_autocorrect")
         val KEY_SUGGESTION_STRIP = booleanPreferencesKey("pref_suggestion_strip")
         val KEY_ACTIVE_LAYOUT = stringPreferencesKey("pref_active_layout")
+        val KEY_DRAG_TO_TYPE_SHIFT = booleanPreferencesKey("pref_drag_to_type_shift")
     }
 
     val themeFlow: Flow<KeyboardTheme> = context.dataStore.data.map { preferences ->
@@ -68,6 +69,10 @@ class UserPreferences(private val context: Context) {
     val activeLayoutFlow: Flow<TypingLayout> = context.dataStore.data.map { preferences ->
         val layoutId = preferences[KEY_ACTIVE_LAYOUT] ?: TypingLayout.ENGLISH.id
         TypingLayout.entries.find { it.id == layoutId } ?: TypingLayout.ENGLISH
+    }
+
+    val dragToTypeShiftFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[KEY_DRAG_TO_TYPE_SHIFT] ?: true
     }
 
     suspend fun setTheme(theme: KeyboardTheme) {
@@ -109,6 +114,12 @@ class UserPreferences(private val context: Context) {
     suspend fun setActiveLayout(layout: TypingLayout) {
         context.dataStore.edit { preferences ->
             preferences[KEY_ACTIVE_LAYOUT] = layout.id
+        }
+    }
+
+    suspend fun setDragToTypeShift(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_DRAG_TO_TYPE_SHIFT] = enabled
         }
     }
 }

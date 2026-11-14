@@ -29,6 +29,7 @@ class KeyboardLayoutState {
     var theme by mutableStateOf(KeyboardTheme.LIGHT)
     var heightRatio by mutableFloatStateOf(1.30f)
     var autoCorrectEnabled by mutableStateOf(true)
+    var dragToTypeShiftEnabled by mutableStateOf(true)
 
     private var lastShiftTapTime = 0L
 

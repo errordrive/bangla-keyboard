@@ -76,6 +76,7 @@ fun SettingsScreen(
     val autoCorrect by preferences.autoCorrectFlow.collectAsState(initial = true)
     val suggestionStrip by preferences.suggestionStripFlow.collectAsState(initial = true)
     val activeLayout by preferences.activeLayoutFlow.collectAsState(initial = TypingLayout.ENGLISH)
+    val dragToTypeShift by preferences.dragToTypeShiftFlow.collectAsState(initial = true)
 
     Scaffold(
         topBar = {
@@ -150,6 +151,10 @@ fun SettingsScreen(
 
             ToggleRow("Show Suggestion Strip", suggestionStrip) {
                 coroutineScope.launch { preferences.setSuggestionStrip(it) }
+            }
+
+            ToggleRow("Swipe/Drag to Type Shift Characters", dragToTypeShift) {
+                coroutineScope.launch { preferences.setDragToTypeShift(it) }
             }
 
             Divider()
