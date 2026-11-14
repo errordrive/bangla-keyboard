@@ -33,84 +33,136 @@ fun ComposeKeyboardView(
         modifier = Modifier
             .fillMaxWidth()
             .background(palette.background)
+            .padding(bottom = 6.dp)
     ) {
-        // Suggestion strip
+        // Top Suggestion & Tool Strip
         SuggestionStrip(
             suggestions = state.suggestions,
             palette = palette,
+            layoutMode = state.layoutMode,
             onSuggestionClick = onSuggestionClick,
             onActionClick = onActionClick
         )
 
         Spacer(modifier = Modifier.height(2.dp))
 
-        // Key rows based on active mode
-        if (state.isSymbolsMode) {
-            val symbolMatrix = if (state.isMoreSymbolsMode) EnglishLayout.symbolRows else EnglishLayout.numberRows
-            RenderKeyMatrix(
-                matrix = symbolMatrix,
-                palette = palette,
-                keyHeight = keyHeight,
-                onKeyClick = onKeyClick
-            )
-        } else {
-            when (state.layoutMode) {
-                TypingLayout.AVRO, TypingLayout.ENGLISH -> {
-                    val rows = if (state.isShifted) EnglishLayout.shiftedRows else EnglishLayout.normalRows
-                    RenderKeyMatrix(
-                        matrix = rows,
-                        palette = palette,
-                        keyHeight = keyHeight,
-                        onKeyClick = onKeyClick
-                    )
-                }
-                TypingLayout.FIXED -> {
-                    val rows = if (state.isShifted) FixedBanglaLayout.shiftedRows else FixedBanglaLayout.normalRows
-                    RenderKeyMatrix(
-                        matrix = rows,
-                        palette = palette,
-                        keyHeight = keyHeight,
-                        onKeyClick = onKeyClick
+        // Determine current key matrix (3 rows)
+        val matrix: List<List<String>> = when {
+            state.isSymbolsMode -> {
+                if (state.isMoreSymbolsMode) EnglishLayout.symbolRows else EnglishLayout.numberRows
+            }
+            state.layoutMode == TypingLayout.FIXED -> {
+                if (state.isShifted) FixedBanglaLayout.shiftedRows else FixedBanglaLayout.normalRows
+            }
+            else -> {
+                // AVRO or ENGLISH
+                if (state.isShifted) EnglishLayout.shiftedRows else EnglishLayout.normalRows
+            }
+        }
+
+        // Row 1 (10 keys)
+        if (matrix.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 2.dp)
+            ) {
+                matrix[0].forEach { keyChar ->
+                    KeyButton(
+                        modifier = Modifier.weight(1f),
+                        label = keyChar,
+                        backgroundColor = palette.keyBackground,
+                        textColor = palette.textPrimary,
+                        height = keyHeight,
+                        onClick = { onKeyClick(keyChar) }
                     )
                 }
             }
         }
 
-        // Action row: Shift / Symbols / Backspace (integrated)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 2.dp)
-        ) {
-            // Shift / Caps key
-            KeyButton(
-                modifier = Modifier.weight(1.3f),
-                label = if (state.isShifted) "⇪" else "⇧",
-                backgroundColor = palette.keyActionBackground,
-                textColor = palette.textPrimary,
-                height = keyHeight,
-                onClick = { state.toggleShift() }
-            )
-
-            // Backspace key
-            KeyButton(
-                modifier = Modifier.weight(1.3f),
-                label = "⌫",
-                backgroundColor = palette.keyActionBackground,
-                textColor = palette.textPrimary,
-                height = keyHeight,
-                onClick = onBackspace
-            )
+        // Row 2 (9 keys, centered with side padding)
+        if (matrix.size > 1) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 2.dp)
+            ) {
+                Spacer(modifier = Modifier.weight(0.5f))
+                matrix[1].forEach { keyChar ->
+                    KeyButton(
+                        modifier = Modifier.weight(1f),
+                        label = keyChar,
+                        backgroundColor = palette.keyBackground,
+                        textColor = palette.textPrimary,
+                        height = keyHeight,
+                        onClick = { onKeyClick(keyChar) }
+                    )
+                }
+                Spacer(modifier = Modifier.weight(0.5f))
+            }
         }
 
-        // Bottom row: ?123, Layout switch, Space, Period, Enter
+        // Row 3 (7 keys flanked by Shift on the left and Backspace on the right)
+        if (matrix.size > 2) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 2.dp)
+            ) {
+                // Shift Key (Left)
+                val shiftLabel = when {
+                    state.isSymbolsMode -> if (state.isMoreSymbolsMode) "1/2" else "2/2"
+                    state.isShifted -> "⇪"
+                    else -> "⇧"
+                }
+                KeyButton(
+                    modifier = Modifier.weight(1.4f),
+                    label = shiftLabel,
+                    backgroundColor = if (state.isShifted) palette.accent.copy(alpha = 0.25f) else palette.keyActionBackground,
+                    textColor = if (state.isShifted) palette.accent else palette.textPrimary,
+                    height = keyHeight,
+                    onClick = {
+                        if (state.isSymbolsMode) {
+                            state.toggleMoreSymbols()
+                        } else {
+                            state.toggleShift()
+                        }
+                    }
+                )
+
+                // 7 Middle Character Keys
+                matrix[2].forEach { keyChar ->
+                    KeyButton(
+                        modifier = Modifier.weight(1f),
+                        label = keyChar,
+                        backgroundColor = palette.keyBackground,
+                        textColor = palette.textPrimary,
+                        height = keyHeight,
+                        onClick = { onKeyClick(keyChar) }
+                    )
+                }
+
+                // Backspace Key (Right)
+                KeyButton(
+                    modifier = Modifier.weight(1.4f),
+                    label = "⌫",
+                    backgroundColor = palette.keyActionBackground,
+                    textColor = palette.textPrimary,
+                    height = keyHeight,
+                    onClick = onBackspace
+                )
+            }
+        }
+
+        // Row 4: Bottom Action Bar (matching Ridmik Keyboard layout)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 2.dp)
         ) {
+            // Symbols / ABC toggle key
             KeyButton(
-                modifier = Modifier.weight(1.2f),
+                modifier = Modifier.weight(1.35f),
                 label = if (state.isSymbolsMode) "ABC" else "?123",
                 backgroundColor = palette.keyActionBackground,
                 textColor = palette.textPrimary,
@@ -118,74 +170,50 @@ fun ComposeKeyboardView(
                 onClick = { state.toggleSymbols() }
             )
 
+            // Comma key
             KeyButton(
-                modifier = Modifier.weight(1.0f),
-                label = "🌐",
+                modifier = Modifier.weight(0.95f),
+                label = ",",
                 backgroundColor = palette.keyActionBackground,
                 textColor = palette.textPrimary,
                 height = keyHeight,
-                onClick = { state.switchLayout() }
+                onClick = { onKeyClick(",") }
             )
 
+            // Spacebar showing active language
+            val spaceLabel = when (state.layoutMode) {
+                TypingLayout.AVRO -> "বাংলা (Avro)"
+                TypingLayout.ENGLISH -> "English"
+                TypingLayout.FIXED -> "সহজ বাংলা"
+            }
             KeyButton(
-                modifier = Modifier.weight(3.8f),
-                label = when (state.layoutMode) {
-                    TypingLayout.AVRO -> "বাংলা (Avro)"
-                    TypingLayout.FIXED -> "বাংলা (Fixed)"
-                    TypingLayout.ENGLISH -> "English"
-                },
+                modifier = Modifier.weight(4.4f),
+                label = spaceLabel,
                 backgroundColor = palette.keyBackground,
-                textColor = palette.textPrimary.copy(alpha = 0.8f),
+                textColor = palette.textPrimary.copy(alpha = 0.85f),
                 height = keyHeight,
                 onClick = onSpace
             )
 
+            // Period key
             KeyButton(
-                modifier = Modifier.weight(1.0f),
-                label = if (state.layoutMode == TypingLayout.ENGLISH) "." else "।",
-                backgroundColor = palette.keyBackground,
+                modifier = Modifier.weight(0.95f),
+                label = ".",
+                backgroundColor = palette.keyActionBackground,
                 textColor = palette.textPrimary,
                 height = keyHeight,
-                onClick = { onKeyClick(if (state.layoutMode == TypingLayout.ENGLISH) "." else "।") }
+                onClick = { onKeyClick(".") }
             )
 
+            // Enter / Action key (Colored in primary accent)
             KeyButton(
-                modifier = Modifier.weight(1.3f),
-                label = "↵",
+                modifier = Modifier.weight(1.35f),
+                label = "⏎",
                 backgroundColor = palette.accent,
                 textColor = palette.background,
                 height = keyHeight,
                 onClick = onEnter
             )
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-    }
-}
-
-@Composable
-private fun RenderKeyMatrix(
-    matrix: List<List<String>>,
-    palette: com.openbangla.keyboard.ui.theme.KeyboardPalette,
-    keyHeight: androidx.compose.ui.unit.Dp,
-    onKeyClick: (String) -> Unit
-) {
-    matrix.forEach { row ->
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 1.dp)
-        ) {
-            row.forEach { key ->
-                KeyButton(
-                    modifier = Modifier.weight(1f),
-                    label = key,
-                    backgroundColor = palette.keyBackground,
-                    textColor = palette.textPrimary,
-                    height = keyHeight,
-                    onClick = { onKeyClick(key) }
-                )
-            }
         }
     }
 }

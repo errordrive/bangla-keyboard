@@ -1,7 +1,7 @@
 package com.openbangla.keyboard.ui.settings
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -43,7 +43,7 @@ import com.openbangla.keyboard.data.preferences.UserPreferences
 import com.openbangla.keyboard.ui.theme.BanglaKeyboardTheme
 import kotlinx.coroutines.launch
 
-class SettingsActivity : ComponentActivity() {
+class SettingsActivity : AppCompatActivity() {
 
     private lateinit var preferences: UserPreferences
 

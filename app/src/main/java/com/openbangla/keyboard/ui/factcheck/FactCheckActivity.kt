@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,7 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import com.openbangla.keyboard.ui.theme.BanglaKeyboardTheme
 
-class FactCheckActivity : ComponentActivity() {
+class FactCheckActivity : AppCompatActivity() {
 
     private var webView: WebView? = null
 

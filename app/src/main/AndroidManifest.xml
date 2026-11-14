@@ -57,7 +57,7 @@
         <!-- Settings Screen -->
         <activity
             android:name=".ui.settings.SettingsActivity"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/settings_title"
             android:theme="@style/Theme.BanglaKeyboard" />
 

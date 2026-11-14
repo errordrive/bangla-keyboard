@@ -2,19 +2,23 @@ package com.openbangla.keyboard.engine
 
 object FixedBanglaLayout {
 
+    // 3 Rows - matching mobile keyboard design:
+    // Row 1 (10 keys), Row 2 (9 keys), Row 3 (7 keys flanked by Shift & Backspace)
     val normalRows = listOf(
-        listOf("১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০"),
         listOf("ক", "খ", "গ", "ঘ", "ঙ", "চ", "ছ", "জ", "ঝ", "ঞ"),
-        listOf("ট", "ঠ", "ড", "ঢ", "ণ", "ত", "থ", "দ", "ধ", "ন"),
-        listOf("প", "ফ", "ব", "ভ", "ম", "য", "র", "ল", "শ", "স")
+        listOf("ট", "ঠ", "ড", "ঢ", "ণ", "ত", "থ", "দ", "ধ"),
+        listOf("ন", "প", "ফ", "ব", "ভ", "ম", "য")
     )
 
     val shiftedRows = listOf(
-        listOf("!", "@", "#", "$", "%", "^", "&", "*", "(", ")"),
         listOf("া", "ি", "ী", "ু", "ূ", "ৃ", "ে", "ৈ", "ো", "ৌ"),
-        listOf("অ", "আ", "ই", "ঈ", "উ", "ঊ", "ঋ", "এ", "ঐ", "ও"),
-        listOf("হ", "ড়", "ঢ়", "য়", "ৎ", "ং", "ঃ", "ঁ", "্", "।")
+        listOf("অ", "আ", "ই", "ঈ", "উ", "ঊ", "ঋ", "এ", "ঐ"),
+        listOf("র", "ল", "শ", "ষ", "স", "হ", "ড়")
     )
 
-    val bottomSymbols = listOf("্", "।", "ঁ", "ং", "ঃ")
+    val numberRows = listOf(
+        listOf("১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০"),
+        listOf("ৎ", "ং", "ঃ", "ঁ", "্", "।", ",", "?", "!"),
+        listOf("@", "#", "$", "%", "&", "-", "+")
+    )
 }

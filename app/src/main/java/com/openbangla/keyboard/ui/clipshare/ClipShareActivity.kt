@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -56,7 +56,7 @@ import com.openbangla.keyboard.data.db.ClipEntity
 import com.openbangla.keyboard.ui.theme.BanglaKeyboardTheme
 import kotlinx.coroutines.launch
 
-class ClipShareActivity : ComponentActivity() {
+class ClipShareActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

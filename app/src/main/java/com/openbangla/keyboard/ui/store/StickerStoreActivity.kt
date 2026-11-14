@@ -2,7 +2,7 @@ package com.openbangla.keyboard.ui.store
 
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -66,7 +66,7 @@ data class StickerPack(
     val previewEmoji: String
 )
 
-class StickerStoreActivity : ComponentActivity() {
+class StickerStoreActivity : AppCompatActivity() {
 
     private lateinit var billingManager: BillingManager
 
