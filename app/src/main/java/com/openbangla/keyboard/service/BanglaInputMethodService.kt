@@ -16,12 +16,12 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.ViewTreeLifecycleOwner
-import androidx.lifecycle.ViewTreeViewModelStoreOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
-import androidx.savedstate.ViewTreeSavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.openbangla.keyboard.R
 import com.openbangla.keyboard.data.preferences.KeyboardTheme
 import com.openbangla.keyboard.data.preferences.TypingLayout
@@ -124,9 +124,9 @@ class BanglaInputMethodService : InputMethodService(),
     override fun onCreateInputView(): View {
         // Set lifecycle and saved state owners on decor view so Compose window recomposer works
         window?.window?.decorView?.let { decorView ->
-            ViewTreeLifecycleOwner.set(decorView, this)
-            ViewTreeViewModelStoreOwner.set(decorView, this)
-            ViewTreeSavedStateRegistryOwner.set(decorView, this)
+            decorView.setViewTreeLifecycleOwner(this)
+            decorView.setViewTreeViewModelStoreOwner(this)
+            decorView.setViewTreeSavedStateRegistryOwner(this)
         }
 
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
@@ -150,9 +150,9 @@ class BanglaInputMethodService : InputMethodService(),
         }
 
         // Also explicitly attach ViewTree owners to ComposeView itself
-        ViewTreeLifecycleOwner.set(composeView, this)
-        ViewTreeViewModelStoreOwner.set(composeView, this)
-        ViewTreeSavedStateRegistryOwner.set(composeView, this)
+        composeView.setViewTreeLifecycleOwner(this)
+        composeView.setViewTreeViewModelStoreOwner(this)
+        composeView.setViewTreeSavedStateRegistryOwner(this)
 
         return composeView
     }
