@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bangla Keyboard</string>
+    <string name="ime_name">Bangla Keyboard IME</string>
+    <string name="subtype_bengali_avro">Bengali (Avro Phonetic)</string>
+    <string name="subtype_bengali_fixed">Bengali (Fixed / Sohoj)</string>
+    <string name="subtype_english">English (US)</string>
+
+    <string name="settings_title">Keyboard Settings</string>
+    <string name="store_title">Sticker &amp; Theme Store</string>
+    <string name="translation_title">Offline Translation</string>
+    <string name="factcheck_title">Fact Check</string>
+    <string name="clipshare_title">Clipboard Share</string>
+    <string name="test_title">Avro Phonetic Debugger</string>
+
+    <string name="step_enable_ime">1. Enable Bangla Keyboard</string>
+    <string name="step_select_ime">2. Select as Default Keyboard</string>
+    <string name="status_enabled">Keyboard Enabled</string>
+    <string name="status_default">Keyboard is Default</string>
+</resources>

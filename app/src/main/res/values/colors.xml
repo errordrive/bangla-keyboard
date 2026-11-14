@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#006C4C</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#89F8C7</color>
+    <color name="on_primary_container">#002114</color>
+    <color name="secondary">#4D6357</color>
+    <color name="background">#FBFDF9</color>
+    <color name="surface">#FBFDF9</color>
+    <color name="keyboard_bg_light">#ECEFF1</color>
+    <color name="keyboard_bg_dark">#1A1C1E</color>
+    <color name="key_bg_light">#FFFFFF</color>
+    <color name="key_bg_dark">#2C2F33</color>
+</resources>

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="com.android.vending.BILLING" />
+
+    <application
+        android:name=".BanglaApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.BanglaKeyboard">
+
+        <!-- AdMob Sample App ID for development/release placeholder -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
+
+        <!-- Core InputMethodService -->
+        <service
+            android:name=".service.BanglaInputMethodService"
+            android:label="@string/ime_name"
+            android:permission="android.permission.BIND_INPUT_METHOD"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/method" />
+        </service>
+
+        <!-- Main Launcher & Setup Wizard -->
+        <activity
+            android:name=".ui.main.MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.BanglaKeyboard">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Settings Screen -->
+        <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_title"
+            android:theme="@style/Theme.BanglaKeyboard" />
+
+        <!-- Sticker / Meme Store Screen -->
+        <activity
+            android:name=".ui.store.StickerStoreActivity"
+            android:exported="false"
+            android:label="@string/store_title"
+            android:theme="@style/Theme.BanglaKeyboard" />
+
+        <!-- Offline Translation Screen -->
+        <activity
+            android:name=".ui.translation.DownloadOfflineTranslationActivity"
+            android:exported="false"
+            android:label="@string/translation_title"
+            android:theme="@style/Theme.BanglaKeyboard" />
+
+        <!-- Fact Check Screen -->
+        <activity
+            android:name=".ui.factcheck.FactCheckActivity"
+            android:exported="false"
+            android:label="@string/factcheck_title"
+            android:theme="@style/Theme.BanglaKeyboard" />
+
+        <!-- Clip Share Activity -->
+        <activity
+            android:name=".ui.clipshare.ClipShareActivity"
+            android:exported="true"
+            android:label="@string/clipshare_title"
+            android:theme="@style/Theme.BanglaKeyboard">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!-- Avro Phonetic Test / Debug Activity -->
+        <activity
+            android:name=".ui.test.AvroPhoneticTestActivity"
+            android:exported="false"
+            android:label="@string/test_title"
+            android:theme="@style/Theme.BanglaKeyboard" />
+
+        <!-- Firebase Cloud Messaging Service -->
+        <service
+            android:name=".analytics.KeyboardFCMService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- File Provider -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+    </application>
+
+</manifest>
