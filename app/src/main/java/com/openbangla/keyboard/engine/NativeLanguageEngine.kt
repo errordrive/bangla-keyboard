@@ -9,10 +9,14 @@ class NativeLanguageEngine {
 
     init {
         try {
+            System.loadLibrary("c++_shared")
+        } catch (e: Throwable) {}
+
+        try {
             System.loadLibrary("openbangla_jni")
             initNativeEngine()
             isNativeLoaded = true
-        } catch (e: UnsatisfiedLinkError) {
+        } catch (e: Throwable) {
             e.printStackTrace()
             isNativeLoaded = false
         }
@@ -26,7 +30,7 @@ class NativeLanguageEngine {
             if (isNativeLoaded) {
                 loadDictionary(bytes)
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             e.printStackTrace()
         }
     }
@@ -40,23 +44,35 @@ class NativeLanguageEngine {
         if (input.isBlank()) return emptyList()
 
         if (isNativeLoaded) {
-            val nativeResults = getSuggestionsNative(input, touchXs, touchYs, maxCount)
-            return nativeResults.toList()
+            try {
+                val nativeResults = getSuggestionsNative(input, touchXs, touchYs, maxCount)
+                return nativeResults.toList()
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
         }
 
-        // JVM Fallback
+        // Safe Fallback
         return listOf(input)
     }
 
     fun insertCustomWord(word: String, frequency: Int) {
         if (isNativeLoaded) {
-            addWord(word, frequency)
+            try {
+                addWord(word, frequency)
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
         }
     }
 
     fun updateContext(previousWords: List<String>) {
         if (isNativeLoaded) {
-            setPreviousWords(previousWords.toTypedArray())
+            try {
+                setPreviousWords(previousWords.toTypedArray())
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
         }
     }
 

@@ -2,13 +2,23 @@ package com.openbangla.keyboard.service
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color as AndroidColor
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.view.Window
 import android.view.inputmethod.EditorInfo
+import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.Lifecycle
@@ -27,6 +37,8 @@ import com.openbangla.keyboard.data.preferences.KeyboardTheme
 import com.openbangla.keyboard.data.preferences.TypingLayout
 import com.openbangla.keyboard.data.preferences.UserPreferences
 import com.openbangla.keyboard.engine.AvroPhoneticParser
+import com.openbangla.keyboard.engine.EnglishLayout
+import com.openbangla.keyboard.engine.FixedBanglaLayout
 import com.openbangla.keyboard.engine.NativeAutoCorrectFixer
 import com.openbangla.keyboard.engine.NativeLanguageEngine
 import com.openbangla.keyboard.ui.clipshare.ClipShareActivity
@@ -41,7 +53,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class BanglaInputMethodService : InputMethodService(),
@@ -70,17 +81,30 @@ class BanglaInputMethodService : InputMethodService(),
 
     override fun onCreate() {
         super.onCreate()
-        savedStateRegistryController.performRestore(null)
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        try {
+            savedStateRegistryController.performAttach()
+            savedStateRegistryController.performRestore(null)
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
 
-        preferences = UserPreferences(this)
+        try {
+            preferences = UserPreferences(this)
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
 
-        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-            vibratorManager?.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        try {
+            vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                vibratorManager?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
 
         // Load dictionary databases safely in background
@@ -93,7 +117,7 @@ class BanglaInputMethodService : InputMethodService(),
             }
         }
 
-        // Collect preferences
+        // Collect preferences safely
         serviceScope.launch {
             try {
                 preferences.themeFlow.collect { theme -> layoutState.theme = theme }
@@ -121,57 +145,108 @@ class BanglaInputMethodService : InputMethodService(),
         }
     }
 
-    override fun onCreateInputView(): View {
-        // Set lifecycle and saved state owners on decor view so Compose window recomposer works
-        window?.window?.decorView?.let { decorView ->
-            decorView.setViewTreeLifecycleOwner(this)
-            decorView.setViewTreeViewModelStoreOwner(this)
-            decorView.setViewTreeSavedStateRegistryOwner(this)
+    override fun onConfigureWindow(win: Window, isFullscreen: Boolean, isCandidatesOnly: Boolean) {
+        super.onConfigureWindow(win, isFullscreen, isCandidatesOnly)
+        try {
+            win.decorView.let { decor ->
+                decor.setViewTreeLifecycleOwner(this)
+                decor.setViewTreeViewModelStoreOwner(this)
+                decor.setViewTreeSavedStateRegistryOwner(this)
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
+    }
 
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    override fun onCreateInputView(): View {
+        return try {
+            window?.window?.decorView?.let { decorView ->
+                decorView.setViewTreeLifecycleOwner(this)
+                decorView.setViewTreeViewModelStoreOwner(this)
+                decorView.setViewTreeSavedStateRegistryOwner(this)
+            }
 
-        val composeView = ComposeView(this).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
-                BanglaKeyboardTheme {
-                    ComposeKeyboardView(
-                        state = layoutState,
-                        onKeyClick = { key -> handleKeyInput(key) },
-                        onBackspace = { handleBackspace() },
-                        onEnter = { handleEnter() },
-                        onSpace = { handleSpace() },
-                        onSuggestionClick = { suggestion -> commitSuggestion(suggestion) },
-                        onActionClick = { action -> handleActionClick(action) }
-                    )
+            if (lifecycleRegistry.currentState != Lifecycle.State.RESUMED) {
+                lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+                lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+            }
+
+            val rootLayout = FrameLayout(this).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                setViewTreeLifecycleOwner(this@BanglaInputMethodService)
+                setViewTreeViewModelStoreOwner(this@BanglaInputMethodService)
+                setViewTreeSavedStateRegistryOwner(this@BanglaInputMethodService)
+            }
+
+            val composeView = ComposeView(this).apply {
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
+                setViewTreeLifecycleOwner(this@BanglaInputMethodService)
+                setViewTreeViewModelStoreOwner(this@BanglaInputMethodService)
+                setViewTreeSavedStateRegistryOwner(this@BanglaInputMethodService)
+
+                setContent {
+                    BanglaKeyboardTheme {
+                        ComposeKeyboardView(
+                            state = layoutState,
+                            onKeyClick = { key -> handleKeyInput(key) },
+                            onBackspace = { handleBackspace() },
+                            onEnter = { handleEnter() },
+                            onSpace = { handleSpace() },
+                            onSuggestionClick = { suggestion -> commitSuggestion(suggestion) },
+                            onActionClick = { action -> handleActionClick(action) }
+                        )
+                    }
                 }
             }
+
+            rootLayout.addView(composeView)
+            rootLayout
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            createFallbackKeyboardView()
         }
-
-        // Also explicitly attach ViewTree owners to ComposeView itself
-        composeView.setViewTreeLifecycleOwner(this)
-        composeView.setViewTreeViewModelStoreOwner(this)
-        composeView.setViewTreeSavedStateRegistryOwner(this)
-
-        return composeView
     }
 
     override fun onWindowShown() {
         super.onWindowShown()
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        try {
+            window?.window?.decorView?.let { decorView ->
+                decorView.setViewTreeLifecycleOwner(this)
+                decorView.setViewTreeViewModelStoreOwner(this)
+                decorView.setViewTreeSavedStateRegistryOwner(this)
+            }
+            if (lifecycleRegistry.currentState != Lifecycle.State.RESUMED) {
+                lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+                lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
     }
 
     override fun onWindowHidden() {
         super.onWindowHidden()
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        try {
+            if (lifecycleRegistry.currentState == Lifecycle.State.RESUMED) {
+                lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-        store.clear()
-        serviceScope.cancel()
+        try {
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+            store.clear()
+            serviceScope.cancel()
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
     }
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
@@ -351,7 +426,6 @@ class BanglaInputMethodService : InputMethodService(),
             "clipboard" -> launchActivity(ClipShareActivity::class.java)
             "settings" -> launchActivity(SettingsActivity::class.java)
             "theme" -> {
-                // Cycle themes quickly from keyboard
                 val nextTheme = when (layoutState.theme) {
                     KeyboardTheme.EMERALD -> KeyboardTheme.DARK
                     KeyboardTheme.DARK -> KeyboardTheme.AMOLED
@@ -377,10 +451,14 @@ class BanglaInputMethodService : InputMethodService(),
     }
 
     private fun launchActivity(clazz: Class<*>) {
-        val intent = Intent(this, clazz).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            val intent = Intent(this, clazz).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
-        startActivity(intent)
     }
 
     private fun performHapticFeedback() {
@@ -395,5 +473,140 @@ class BanglaInputMethodService : InputMethodService(),
         } catch (e: Throwable) {
             e.printStackTrace()
         }
+    }
+
+    /**
+     * Native Android View keyboard fallback to guarantee zero IME crashes
+     * even if Compose encounters an unexpected platform error.
+     */
+    private fun createFallbackKeyboardView(): View {
+        val density = resources.displayMetrics.density
+        fun dp(value: Int): Int = (value * density).toInt()
+
+        val mainLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(AndroidColor.parseColor("#004D36"))
+            setPadding(dp(4), dp(4), dp(4), dp(8))
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        // Top Suggestion Strip
+        val strip = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(42)
+            )
+        }
+
+        val toolBtn = TextView(this).apply {
+            text = "▦"
+            textSize = 18f
+            setTextColor(AndroidColor.WHITE)
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+            setOnClickListener { handleActionClick("settings") }
+        }
+        strip.addView(toolBtn)
+
+        val suggestionScroll = HorizontalScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            isHorizontalScrollBarEnabled = false
+        }
+        val suggestionHolder = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+        suggestionScroll.addView(suggestionHolder)
+        strip.addView(suggestionScroll)
+
+        val modeBadge = TextView(this).apply {
+            text = when (layoutState.layoutMode) {
+                TypingLayout.AVRO -> "Avro"
+                TypingLayout.ENGLISH -> "EN"
+                TypingLayout.FIXED -> "সহজ"
+            }
+            textSize = 12f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(AndroidColor.parseColor("#A7F3D0"))
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+            setOnClickListener {
+                handleActionClick("layout_switch")
+                text = when (layoutState.layoutMode) {
+                    TypingLayout.AVRO -> "Avro"
+                    TypingLayout.ENGLISH -> "EN"
+                    TypingLayout.FIXED -> "সহজ"
+                }
+            }
+        }
+        strip.addView(modeBadge)
+        mainLayout.addView(strip)
+
+        // Key rows
+        fun createKey(label: String, weight: Float, action: () -> Unit): TextView {
+            return TextView(this).apply {
+                text = label
+                textSize = if (label.length > 2) 11f else 16f
+                setTextColor(AndroidColor.WHITE)
+                gravity = Gravity.CENTER
+                typeface = Typeface.DEFAULT_BOLD
+
+                val bg = GradientDrawable().apply {
+                    setColor(AndroidColor.parseColor("#006C4C"))
+                    cornerRadius = dp(6).toFloat()
+                }
+                background = bg
+
+                val lp = LinearLayout.LayoutParams(0, dp(46), weight).apply {
+                    setMargins(dp(2), dp(3), dp(2), dp(3))
+                }
+                layoutParams = lp
+                setOnClickListener { action() }
+            }
+        }
+
+        val rows = listOf(
+            listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p"),
+            listOf("a", "s", "d", "f", "g", "h", "j", "k", "l"),
+            listOf("z", "x", "c", "v", "b", "n", "m")
+        )
+
+        // Row 1
+        val r1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        rows[0].forEach { ch -> r1.addView(createKey(ch, 1f) { handleKeyInput(ch) }) }
+        mainLayout.addView(r1)
+
+        // Row 2
+        val r2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        r2.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(0, 0, 0.5f) })
+        rows[1].forEach { ch -> r2.addView(createKey(ch, 1f) { handleKeyInput(ch) }) }
+        r2.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(0, 0, 0.5f) })
+        mainLayout.addView(r2)
+
+        // Row 3
+        val r3 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        r3.addView(createKey("⇧", 1.4f) { layoutState.toggleShift() })
+        rows[2].forEach { ch -> r3.addView(createKey(ch, 1f) { handleKeyInput(ch) }) }
+        r3.addView(createKey("⌫", 1.4f) { handleBackspace() })
+        mainLayout.addView(r3)
+
+        // Row 4 (Bottom Action Row)
+        val r4 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        r4.addView(createKey("?123", 1.35f) { layoutState.toggleSymbols() })
+        r4.addView(createKey(",", 0.95f) { handleKeyInput(",") })
+        val spaceText = when (layoutState.layoutMode) {
+            TypingLayout.AVRO -> "বাংলা (Avro)"
+            TypingLayout.ENGLISH -> "English"
+            TypingLayout.FIXED -> "সহজ বাংলা"
+        }
+        r4.addView(createKey(spaceText, 4.4f) { handleSpace() })
+        r4.addView(createKey(".", 0.95f) { handleKeyInput(".") })
+        r4.addView(createKey("⏎", 1.35f) { handleEnter() })
+        mainLayout.addView(r4)
+
+        return mainLayout
     }
 }

@@ -6,7 +6,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.google.android.gms.ads.MobileAds
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.openbangla.keyboard.data.db.AppDatabase
@@ -41,14 +40,6 @@ class BanglaApplication : Application() {
             e.printStackTrace()
         }
 
-        // 2. Initialize Google Mobile Ads SDK asynchronously
-        applicationScope.launch {
-            try {
-                MobileAds.initialize(this@BanglaApplication) {}
-            } catch (e: Throwable) {
-                e.printStackTrace()
-            }
-        }
 
         // 3. Schedule periodic background dictionary maintenance safely
         try {

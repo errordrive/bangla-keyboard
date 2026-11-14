@@ -67,7 +67,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.openbangla.keyboard.monetization.AdMobManager
 import com.openbangla.keyboard.ui.clipshare.ClipShareActivity
 import com.openbangla.keyboard.ui.factcheck.FactCheckActivity
 import com.openbangla.keyboard.ui.settings.SettingsActivity
@@ -78,15 +77,8 @@ import com.openbangla.keyboard.ui.translation.DownloadOfflineTranslationActivity
 
 class MainActivity : AppCompatActivity() {
 
-    private var adMobManager: AdMobManager? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        try {
-            adMobManager = AdMobManager(this)
-        } catch (e: Throwable) {
-            e.printStackTrace()
-        }
 
         setContent {
             BanglaKeyboardTheme {

@@ -114,8 +114,6 @@ dependencies {
     // Google ML Kit Offline Translation
     implementation("com.google.mlkit:translate:17.0.3")
 
-    // Google Mobile Ads (AdMob)
-    implementation("com.google.android.gms:play-services-ads:23.5.0")
 
     // Google Play Billing
     implementation("com.android.billingclient:billing-ktx:7.1.1")

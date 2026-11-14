@@ -32,10 +32,14 @@ class NativeAutoCorrectFixer {
 
     init {
         try {
+            System.loadLibrary("c++_shared")
+        } catch (e: Throwable) {}
+
+        try {
             System.loadLibrary("autocorrect_jni")
             initFixer()
             isNativeLoaded = true
-        } catch (e: UnsatisfiedLinkError) {
+        } catch (e: Throwable) {
             e.printStackTrace()
             isNativeLoaded = false
         }
@@ -46,8 +50,12 @@ class NativeAutoCorrectFixer {
         if (trimmed.isEmpty()) return null
 
         if (isNativeLoaded) {
-            val res = getCorrectionNative(trimmed.lowercase())
-            if (!res.isNullOrBlank()) return res
+            try {
+                val res = getCorrectionNative(trimmed.lowercase())
+                if (!res.isNullOrBlank()) return res
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
         }
 
         return fallbackMap[trimmed.lowercase()]
@@ -56,7 +64,11 @@ class NativeAutoCorrectFixer {
     fun registerCorrectionRule(key: String, replacement: String) {
         fallbackMap[key.lowercase()] = replacement
         if (isNativeLoaded) {
-            addRuleNative(key.lowercase(), replacement)
+            try {
+                addRuleNative(key.lowercase(), replacement)
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
         }
     }
 
