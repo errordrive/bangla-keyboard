@@ -383,7 +383,7 @@ fun SpaceKeyButton(
                         val event = awaitPointerEvent()
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
 
-                        if (change.changedToUp()) {
+                        if (!change.pressed) {
                             if (!triggered && kotlin.math.abs(accumulatedX) < 30f) {
                                 onClick()
                             }

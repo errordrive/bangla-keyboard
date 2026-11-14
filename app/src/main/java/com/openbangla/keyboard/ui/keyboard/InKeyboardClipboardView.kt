@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openbangla.keyboard.data.db.ClipEntity
+import com.openbangla.keyboard.ui.theme.KeyboardPalette
 
 @Composable
 fun InKeyboardClipboardView(
