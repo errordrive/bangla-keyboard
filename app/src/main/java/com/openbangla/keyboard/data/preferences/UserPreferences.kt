@@ -21,10 +21,11 @@ enum class KeyboardTheme(val id: String, val displayName: String) {
     SLATE("slate", "Deep Slate")
 }
 
-enum class TypingLayout(val id: String) {
-    AVRO("avro"),
-    FIXED("fixed"),
-    ENGLISH("english")
+enum class TypingLayout(val id: String, val displayName: String) {
+    ENGLISH("english", "English"),
+    PROBHAT("probhat", "প্রভাত"),
+    SOHOJ("sohoj", "সহজ"),
+    AVRO("avro", "অভ্র")
 }
 
 class UserPreferences(private val context: Context) {
@@ -45,7 +46,7 @@ class UserPreferences(private val context: Context) {
     }
 
     val keyboardHeightFlow: Flow<Float> = context.dataStore.data.map { preferences ->
-        preferences[KEY_KEYBOARD_HEIGHT] ?: 1.0f
+        preferences[KEY_KEYBOARD_HEIGHT] ?: 1.30f
     }
 
     val vibrationFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
@@ -65,8 +66,8 @@ class UserPreferences(private val context: Context) {
     }
 
     val activeLayoutFlow: Flow<TypingLayout> = context.dataStore.data.map { preferences ->
-        val layoutId = preferences[KEY_ACTIVE_LAYOUT] ?: TypingLayout.AVRO.id
-        TypingLayout.entries.find { it.id == layoutId } ?: TypingLayout.AVRO
+        val layoutId = preferences[KEY_ACTIVE_LAYOUT] ?: TypingLayout.ENGLISH.id
+        TypingLayout.entries.find { it.id == layoutId } ?: TypingLayout.ENGLISH
     }
 
     suspend fun setTheme(theme: KeyboardTheme) {

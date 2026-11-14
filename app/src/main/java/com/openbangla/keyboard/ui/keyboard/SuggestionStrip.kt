@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Mood
@@ -89,6 +90,10 @@ fun SuggestionStrip(
                     showToolbarMenu = false
                     onActionClick("theme")
                 }
+                ToolbarIcon(Icons.Default.Dialpad, "Number Pad", palette) {
+                    showToolbarMenu = false
+                    onActionClick("numpad")
+                }
                 ToolbarIcon(Icons.Default.Mood, "Stickers", palette) {
                     showToolbarMenu = false
                     onActionClick("store")
@@ -152,9 +157,10 @@ fun SuggestionStrip(
             contentAlignment = Alignment.Center
         ) {
             val label = when (layoutMode) {
-                TypingLayout.AVRO -> "Avro"
                 TypingLayout.ENGLISH -> "EN"
-                TypingLayout.FIXED -> "সহজ"
+                TypingLayout.PROBHAT -> "প্রভাত"
+                TypingLayout.SOHOJ -> "সহজ"
+                TypingLayout.AVRO -> "Avro"
             }
             Text(
                 text = label,

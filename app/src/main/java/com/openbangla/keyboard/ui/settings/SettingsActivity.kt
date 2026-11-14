@@ -70,12 +70,12 @@ fun SettingsScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val theme by preferences.themeFlow.collectAsState(initial = KeyboardTheme.LIGHT)
-    val heightRatio by preferences.keyboardHeightFlow.collectAsState(initial = 1.0f)
+    val heightRatio by preferences.keyboardHeightFlow.collectAsState(initial = 1.30f)
     val vibration by preferences.vibrationFlow.collectAsState(initial = true)
     val sound by preferences.soundFlow.collectAsState(initial = false)
     val autoCorrect by preferences.autoCorrectFlow.collectAsState(initial = true)
     val suggestionStrip by preferences.suggestionStripFlow.collectAsState(initial = true)
-    val activeLayout by preferences.activeLayoutFlow.collectAsState(initial = TypingLayout.AVRO)
+    val activeLayout by preferences.activeLayoutFlow.collectAsState(initial = TypingLayout.ENGLISH)
 
     Scaffold(
         topBar = {
@@ -157,9 +157,10 @@ fun SettingsScreen(
             // Section: Default Layout
             SectionTitle("Default Typing Mode")
             listOf(
-                TypingLayout.AVRO to "Avro Phonetic (Phonetic Roman to Bengali)",
-                TypingLayout.FIXED to "Fixed Bengali (Visual Layout)",
-                TypingLayout.ENGLISH to "English QWERTY"
+                TypingLayout.ENGLISH to "English (QWERTY)",
+                TypingLayout.PROBHAT to "প্রভাত (Probhat Bengali)",
+                TypingLayout.SOHOJ to "সহজ (Sohoj Bengali)",
+                TypingLayout.AVRO to "Avro (Phonetic Roman to Bengali)"
             ).forEach { (layout, label) ->
                 Row(
                     modifier = Modifier

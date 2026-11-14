@@ -22,6 +22,9 @@ interface ClipDao {
     @Delete
     suspend fun deleteClip(clip: ClipEntity)
 
+    @Query("DELETE FROM clipboard_history WHERE isPinned = 0")
+    suspend fun clearAllUnpinned()
+
     @Query("DELETE FROM clipboard_history WHERE isPinned = 0 AND timestamp < :olderThan")
     suspend fun deleteOldUnpinnedClips(olderThan: Long)
 }

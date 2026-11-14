@@ -19,6 +19,8 @@ import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.Lifecycle
@@ -32,7 +34,10 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.openbangla.keyboard.BanglaApplication
 import com.openbangla.keyboard.R
+import com.openbangla.keyboard.data.db.AppDatabase
+import com.openbangla.keyboard.data.db.ClipEntity
 import com.openbangla.keyboard.data.preferences.KeyboardTheme
 import com.openbangla.keyboard.data.preferences.TypingLayout
 import com.openbangla.keyboard.data.preferences.UserPreferences
@@ -73,6 +78,10 @@ class BanglaInputMethodService : InputMethodService(),
     private val nativeEngine = NativeLanguageEngine()
     private val autoCorrectFixer = NativeAutoCorrectFixer()
     private lateinit var preferences: UserPreferences
+    private val clipDao by lazy {
+        (applicationContext as? BanglaApplication)?.database?.clipDao()
+            ?: AppDatabase.getDatabase(applicationContext).clipDao()
+    }
 
     private var vibrator: Vibrator? = null
     private var vibrationEnabled = true
@@ -189,14 +198,20 @@ class BanglaInputMethodService : InputMethodService(),
 
                 setContent {
                     BanglaKeyboardTheme {
+                        val clips by clipDao.getAllClips().collectAsState(initial = emptyList())
                         ComposeKeyboardView(
                             state = layoutState,
+                            clips = clips,
                             onKeyClick = { key -> handleKeyInput(key) },
                             onBackspace = { handleBackspace() },
                             onEnter = { handleEnter() },
                             onSpace = { handleSpace() },
                             onSuggestionClick = { suggestion -> commitSuggestion(suggestion) },
-                            onActionClick = { action -> handleActionClick(action) }
+                            onActionClick = { action -> handleActionClick(action) },
+                            onDeleteClip = { clip -> serviceScope.launch(Dispatchers.IO) { clipDao.deleteClip(clip) } },
+                            onClearAllClips = { serviceScope.launch(Dispatchers.IO) { clipDao.clearAllUnpinned() } },
+                            onSwipeLeft = { cycleLayout(true) },
+                            onSwipeRight = { cycleLayout(false) }
                         )
                     }
                 }
@@ -256,6 +271,11 @@ class BanglaInputMethodService : InputMethodService(),
         isComposing = false
     }
 
+    override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
+        super.onStartInputView(info, restarting)
+        syncSystemClipboard()
+    }
+
     override fun onFinishInput() {
         super.onFinishInput()
         layoutState.composingText = ""
@@ -268,6 +288,19 @@ class BanglaInputMethodService : InputMethodService(),
         val ic = currentInputConnection ?: return
 
         when (layoutState.layoutMode) {
+            TypingLayout.ENGLISH -> {
+                val charToInsert = if (layoutState.isShifted && key.length == 1) key.uppercase() else key
+                layoutState.composingText += charToInsert
+                ic.setComposingText(layoutState.composingText, 1)
+                isComposing = true
+                updateSuggestions(layoutState.composingText)
+                layoutState.onCharacterTyped()
+            }
+            TypingLayout.PROBHAT, TypingLayout.SOHOJ -> {
+                commitComposingText()
+                ic.commitText(key, 1)
+                layoutState.onCharacterTyped()
+            }
             TypingLayout.AVRO -> {
                 // Buffer roman characters for Avro phonetic parsing
                 if (key.length == 1 && (key[0].isLetter() || key[0] == '`' || key[0] == '^' || key[0] == ':')) {
@@ -280,16 +313,7 @@ class BanglaInputMethodService : InputMethodService(),
                     commitComposingText()
                     ic.commitText(key, 1)
                 }
-            }
-            TypingLayout.FIXED -> {
-                commitComposingText()
-                ic.commitText(key, 1)
-            }
-            TypingLayout.ENGLISH -> {
-                layoutState.composingText += key
-                ic.setComposingText(layoutState.composingText, 1)
-                isComposing = true
-                updateSuggestions(layoutState.composingText)
+                layoutState.onCharacterTyped()
             }
         }
     }
@@ -423,7 +447,13 @@ class BanglaInputMethodService : InputMethodService(),
             "store" -> launchActivity(StickerStoreActivity::class.java)
             "translate" -> launchActivity(DownloadOfflineTranslationActivity::class.java)
             "factcheck" -> launchActivity(FactCheckActivity::class.java)
-            "clipboard" -> launchActivity(ClipShareActivity::class.java)
+            "clipboard" -> {
+                syncSystemClipboard()
+                layoutState.toggleClipboard()
+            }
+            "numpad" -> {
+                layoutState.toggleNumberPad()
+            }
             "settings" -> launchActivity(SettingsActivity::class.java)
             "theme" -> {
                 val nextTheme = when (layoutState.theme) {
@@ -438,15 +468,34 @@ class BanglaInputMethodService : InputMethodService(),
                 }
             }
             "layout_switch" -> {
-                val nextLayout = when (layoutState.layoutMode) {
-                    TypingLayout.AVRO -> TypingLayout.ENGLISH
-                    TypingLayout.ENGLISH -> TypingLayout.FIXED
-                    TypingLayout.FIXED -> TypingLayout.AVRO
-                }
-                serviceScope.launch {
-                    preferences.setActiveLayout(nextLayout)
+                cycleLayout(true)
+            }
+        }
+    }
+
+    private fun cycleLayout(forward: Boolean) {
+        performHapticFeedback()
+        commitComposingText()
+        layoutState.switchLayout(forward)
+        serviceScope.launch {
+            preferences.setActiveLayout(layoutState.layoutMode)
+        }
+    }
+
+    private fun syncSystemClipboard() {
+        try {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return
+            val primaryClip = clipboard.primaryClip
+            if (primaryClip != null && primaryClip.itemCount > 0) {
+                val itemText = primaryClip.getItemAt(0)?.coerceToText(this)?.toString()
+                if (!itemText.isNullOrBlank()) {
+                    serviceScope.launch(Dispatchers.IO) {
+                        clipDao.insertClip(ClipEntity(text = itemText, timestamp = System.currentTimeMillis()))
+                    }
                 }
             }
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
     }
 
@@ -525,9 +574,10 @@ class BanglaInputMethodService : InputMethodService(),
 
         val modeBadge = TextView(this).apply {
             text = when (layoutState.layoutMode) {
-                TypingLayout.AVRO -> "Avro"
                 TypingLayout.ENGLISH -> "EN"
-                TypingLayout.FIXED -> "সহজ"
+                TypingLayout.PROBHAT -> "প্রভাত"
+                TypingLayout.SOHOJ -> "সহজ"
+                TypingLayout.AVRO -> "Avro"
             }
             textSize = 12f
             setTypeface(null, Typeface.BOLD)
@@ -536,9 +586,10 @@ class BanglaInputMethodService : InputMethodService(),
             setOnClickListener {
                 handleActionClick("layout_switch")
                 text = when (layoutState.layoutMode) {
-                    TypingLayout.AVRO -> "Avro"
                     TypingLayout.ENGLISH -> "EN"
-                    TypingLayout.FIXED -> "সহজ"
+                    TypingLayout.PROBHAT -> "প্রভাত"
+                    TypingLayout.SOHOJ -> "সহজ"
+                    TypingLayout.AVRO -> "Avro"
                 }
             }
         }
@@ -598,9 +649,10 @@ class BanglaInputMethodService : InputMethodService(),
         r4.addView(createKey("?123", 1.35f) { layoutState.toggleSymbols() })
         r4.addView(createKey(",", 0.95f) { handleKeyInput(",") })
         val spaceText = when (layoutState.layoutMode) {
-            TypingLayout.AVRO -> "বাংলা (Avro)"
             TypingLayout.ENGLISH -> "English"
-            TypingLayout.FIXED -> "সহজ বাংলা"
+            TypingLayout.PROBHAT -> "প্রভাত"
+            TypingLayout.SOHOJ -> "সহজ"
+            TypingLayout.AVRO -> "Avro"
         }
         r4.addView(createKey(spaceText, 4.4f) { handleSpace() })
         r4.addView(createKey(".", 0.95f) { handleKeyInput(".") })
