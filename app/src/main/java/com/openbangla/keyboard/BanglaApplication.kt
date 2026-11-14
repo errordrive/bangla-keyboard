@@ -24,28 +24,30 @@ class BanglaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // 1. Safely initialize Firebase with default fallback options
-        // Prevents crash when google-services.json is absent on device
-        try {
-            if (FirebaseApp.getApps(this).isEmpty()) {
-                val options = FirebaseOptions.Builder()
-                    .setApplicationId("1:123456789012:android:abcdef0123456789")
-                    .setApiKey("AIzaSyDummyKeyForOpenBanglaAppId001")
-                    .setProjectId("openbangla-keyboard")
-                    .setGcmSenderId("123456789012")
-                    .build()
-                FirebaseApp.initializeApp(this, options)
+        // 1. Safely initialize Firebase with default fallback options in background
+        applicationScope.launch {
+            try {
+                if (FirebaseApp.getApps(this@BanglaApplication).isEmpty()) {
+                    val options = FirebaseOptions.Builder()
+                        .setApplicationId("1:123456789012:android:abcdef0123456789")
+                        .setApiKey("AIzaSyDummyKeyForOpenBanglaAppId001")
+                        .setProjectId("openbangla-keyboard")
+                        .setGcmSenderId("123456789012")
+                        .build()
+                    FirebaseApp.initializeApp(this@BanglaApplication, options)
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
             }
-        } catch (e: Throwable) {
-            e.printStackTrace()
         }
 
-
-        // 3. Schedule periodic background dictionary maintenance safely
-        try {
-            scheduleBackgroundWorker()
-        } catch (e: Throwable) {
-            e.printStackTrace()
+        // 2. Schedule periodic background dictionary maintenance safely in background
+        applicationScope.launch {
+            try {
+                scheduleBackgroundWorker()
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
         }
     }
 

@@ -30,4 +30,6 @@
     <string name="default_web_client_id" translatable="false">123456789012-dummywebclientid.apps.googleusercontent.com</string>
     <string name="firebase_database_url" translatable="false">https://openbangla-keyboard-default-rtdb.firebaseio.com</string>
     <string name="google_crash_reporting_api_key" translatable="false">AIzaSyDummyKeyForOpenBanglaAppId001</string>
+    <string name="com.crashlytics.android.build_id" translatable="false">1</string>
+    <string name="com_google_firebase_crashlytics_mapping_file_id" translatable="false">1</string>
 </resources>

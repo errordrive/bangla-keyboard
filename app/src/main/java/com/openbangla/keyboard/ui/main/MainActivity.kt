@@ -5,7 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Mood
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Translate
@@ -43,7 +42,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -75,51 +73,99 @@ import com.openbangla.keyboard.ui.test.AvroPhoneticTestActivity
 import com.openbangla.keyboard.ui.theme.BanglaKeyboardTheme
 import com.openbangla.keyboard.ui.translation.DownloadOfflineTranslationActivity
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
+
+    private val isEnabledState = mutableStateOf(false)
+    private val isDefaultState = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        try {
+            refreshStatus()
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
 
-        setContent {
-            BanglaKeyboardTheme {
-                MainAppScreen(
-                    onEnableKeyboard = {
-                        startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
-                    },
-                    onSelectDefaultKeyboard = {
-                        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                        imm.showInputMethodPicker()
-                    },
-                    onOpenSettings = { startActivity(Intent(this, SettingsActivity::class.java)) },
-                    onOpenStore = { startActivity(Intent(this, StickerStoreActivity::class.java)) },
-                    onOpenTranslate = { startActivity(Intent(this, DownloadOfflineTranslationActivity::class.java)) },
-                    onOpenFactCheck = { startActivity(Intent(this, FactCheckActivity::class.java)) },
-                    onOpenClipShare = { startActivity(Intent(this, ClipShareActivity::class.java)) },
-                    onOpenTutorial = { startActivity(Intent(this, AvroPhoneticTestActivity::class.java)) }
-                )
+        try {
+            setContent {
+                BanglaKeyboardTheme {
+                    MainAppScreen(
+                        isImeEnabledInit = isEnabledState.value,
+                        isImeDefaultInit = isDefaultState.value,
+                        onEnableKeyboard = {
+                            try {
+                                startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+                            } catch (e: Throwable) {
+                                e.printStackTrace()
+                            }
+                        },
+                        onSelectDefaultKeyboard = {
+                            try {
+                                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                                imm?.showInputMethodPicker()
+                            } catch (e: Throwable) {
+                                e.printStackTrace()
+                            }
+                        },
+                        onOpenSettings = { launchSafely(SettingsActivity::class.java) },
+                        onOpenStore = { launchSafely(StickerStoreActivity::class.java) },
+                        onOpenTranslate = { launchSafely(DownloadOfflineTranslationActivity::class.java) },
+                        onOpenFactCheck = { launchSafely(FactCheckActivity::class.java) },
+                        onOpenClipShare = { launchSafely(ClipShareActivity::class.java) },
+                        onOpenTutorial = { launchSafely(AvroPhoneticTestActivity::class.java) }
+                    )
+                }
             }
+        } catch (t: Throwable) {
+            t.printStackTrace()
         }
     }
 
     override fun onResume() {
         super.onResume()
-        // Re-check IME state on resume so UI updates after user switches keyboard
+        try {
+            refreshStatus()
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
     }
 
-    private fun isImeEnabled(): Boolean {
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        val enabledList = imm.enabledInputMethodList
-        return enabledList.any { it.packageName == packageName }
+    private fun refreshStatus() {
+        isEnabledState.value = checkImeEnabled()
+        isDefaultState.value = checkImeDefault()
     }
 
-    private fun isImeDefault(): Boolean {
-        val currentId = Settings.Secure.getString(contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
-        return currentId != null && currentId.contains(packageName)
+    private fun checkImeEnabled(): Boolean {
+        return try {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.enabledInputMethodList?.any { it?.packageName == packageName } == true
+        } catch (e: Throwable) {
+            false
+        }
+    }
+
+    private fun checkImeDefault(): Boolean {
+        return try {
+            val currentId = Settings.Secure.getString(contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
+            currentId != null && currentId.contains(packageName)
+        } catch (e: Throwable) {
+            false
+        }
+    }
+
+    private fun launchSafely(clazz: Class<*>) {
+        try {
+            startActivity(Intent(this, clazz))
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MainAppScreen(
+        isImeEnabledInit: Boolean,
+        isImeDefaultInit: Boolean,
         onEnableKeyboard: () -> Unit,
         onSelectDefaultKeyboard: () -> Unit,
         onOpenSettings: () -> Unit,
@@ -129,13 +175,17 @@ class MainActivity : AppCompatActivity() {
         onOpenClipShare: () -> Unit,
         onOpenTutorial: () -> Unit
     ) {
-        var isEnabled by remember { mutableStateOf(false) }
-        var isDefault by remember { mutableStateOf(false) }
+        var isEnabled by remember { mutableStateOf(isImeEnabledInit) }
+        var isDefault by remember { mutableStateOf(isImeDefaultInit) }
         var selectedTab by remember { mutableIntStateOf(0) }
 
         LaunchedEffect(Unit) {
-            isEnabled = isImeEnabled()
-            isDefault = isImeDefault()
+            try {
+                isEnabled = checkImeEnabled()
+                isDefault = checkImeDefault()
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
         }
 
         val primaryGreen = Color(0xFF006C4C)
@@ -254,7 +304,7 @@ class MainActivity : AppCompatActivity() {
 
                                 SetupStepItem(
                                     stepNum = "১",
-                                    title = "সেটিংস এ কীবোর্ড চালু করুন",
+                                    title = "কীবোর্ড সক্রিয় করুন",
                                     isDone = isEnabled,
                                     actionLabel = "চালু করুন",
                                     primaryColor = primaryGreen,
