@@ -69,7 +69,7 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val theme by preferences.themeFlow.collectAsState(initial = KeyboardTheme.LIGHT)
+    val theme by preferences.themeFlow.collectAsState(initial = KeyboardTheme.RIDMIK_GREEN)
     val heightRatio by preferences.keyboardHeightFlow.collectAsState(initial = 1.30f)
     val vibration by preferences.vibrationFlow.collectAsState(initial = true)
     val sound by preferences.soundFlow.collectAsState(initial = false)

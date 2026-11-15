@@ -9,8 +9,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +21,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,10 +35,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openbangla.keyboard.data.db.ClipEntity
+import com.openbangla.keyboard.data.preferences.KeyboardTheme
 import com.openbangla.keyboard.data.preferences.TypingLayout
 import com.openbangla.keyboard.engine.EnglishLayout
 import com.openbangla.keyboard.engine.FixedBanglaLayout
 import com.openbangla.keyboard.engine.ProbhatBanglaLayout
+import com.openbangla.keyboard.ui.theme.KeyboardPalette
 import com.openbangla.keyboard.ui.theme.getKeyboardPalette
 
 @Composable
@@ -50,7 +52,22 @@ fun ComposeKeyboardView(
     onEnter: () -> Unit,
     onSpace: () -> Unit,
     onSuggestionClick: (String) -> Unit,
-    onActionClick: (String) -> Unit,
+    onLayoutSwitch: () -> Unit,
+    onSelectTheme: (KeyboardTheme) -> Unit,
+    onOpenTranslate: () -> Unit,
+    onOpenFactCheck: () -> Unit,
+    onOpenStore: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onMoveCursorLeft: (Boolean) -> Unit = {},
+    onMoveCursorRight: (Boolean) -> Unit = {},
+    onMoveCursorUp: (Boolean) -> Unit = {},
+    onMoveCursorDown: (Boolean) -> Unit = {},
+    onMoveHome: (Boolean) -> Unit = {},
+    onMoveEnd: (Boolean) -> Unit = {},
+    onSelectAll: () -> Unit = {},
+    onCopy: () -> Unit = {},
+    onCut: () -> Unit = {},
+    onPaste: () -> Unit = {},
     onDeleteClip: (ClipEntity) -> Unit = {},
     onClearAllClips: () -> Unit = {},
     onSwipeLeft: () -> Unit = {},
@@ -66,42 +83,95 @@ fun ComposeKeyboardView(
             .background(palette.background)
             .padding(bottom = 6.dp)
     ) {
-        // Top Suggestion & Tool Strip
+        // Top Suggestion & Toolbar Strip
         SuggestionStrip(
             suggestions = state.suggestions,
             palette = palette,
             layoutMode = state.layoutMode,
             onSuggestionClick = onSuggestionClick,
-            onActionClick = onActionClick
+            onMenuClick = { state.toggleMoreOptions() },
+            onLayoutBadgeClick = onLayoutSwitch
         )
 
         Spacer(modifier = Modifier.height(2.dp))
 
-        // Animated Body: Switch between Keyboard Keys, Clipboard View, or Number Pad Mode
+        // Animated Body: Smooth transitions between all keyboard modes
+        val activeOverlay = when {
+            state.isMoreOptionsOpen -> "options"
+            state.isTextEditingOpen -> "text_editing"
+            state.isEmojiKeyboardOpen -> "emoji"
+            state.isClipboardOpen -> "clipboard"
+            state.isNumberPadMode -> "numpad"
+            else -> "keyboard"
+        }
+
         AnimatedContent(
-            targetState = Triple(state.isClipboardOpen, state.isNumberPadMode, state.layoutMode),
+            targetState = activeOverlay,
             transitionSpec = {
-                (slideInVertically { height -> height / 4 } + fadeIn()) togetherWith
-                        (slideOutVertically { height -> -height / 4 } + fadeOut())
+                (slideInVertically { height -> height / 5 } + fadeIn()) togetherWith
+                        (slideOutVertically { height -> -height / 5 } + fadeOut())
             },
-            label = "KeyboardBodyTransition"
-        ) { (isClipboard, isNumPad, currentMode) ->
-            when {
-                isClipboard -> {
+            label = "KeyboardOverlayTransition"
+        ) { overlayMode ->
+            when (overlayMode) {
+                "options" -> {
+                    InKeyboardMoreOptionsView(
+                        palette = palette,
+                        totalHeight = totalBodyHeight,
+                        currentTheme = state.theme,
+                        onSelectTheme = onSelectTheme,
+                        onOpenClipboard = { state.toggleClipboard() },
+                        onOpenNumberPad = { state.toggleNumberPad() },
+                        onOpenTextEditing = { state.toggleTextEditing() },
+                        onOpenTranslate = onOpenTranslate,
+                        onOpenFactCheck = onOpenFactCheck,
+                        onOpenStore = onOpenStore,
+                        onOpenSettings = onOpenSettings,
+                        onClose = { state.closeOverlays() }
+                    )
+                }
+                "text_editing" -> {
+                    InKeyboardTextEditingView(
+                        palette = palette,
+                        totalHeight = totalBodyHeight,
+                        onMoveLeft = onMoveCursorLeft,
+                        onMoveRight = onMoveCursorRight,
+                        onMoveUp = onMoveCursorUp,
+                        onMoveDown = onMoveCursorDown,
+                        onMoveHome = onMoveHome,
+                        onMoveEnd = onMoveEnd,
+                        onSelectAll = onSelectAll,
+                        onCopy = onCopy,
+                        onCut = onCut,
+                        onPaste = onPaste,
+                        onClose = { state.closeOverlays() }
+                    )
+                }
+                "emoji" -> {
+                    InKeyboardEmojiView(
+                        palette = palette,
+                        totalHeight = totalBodyHeight,
+                        onEmojiClick = onKeyClick,
+                        onBackspace = onBackspace,
+                        onSpace = onSpace,
+                        onClose = { state.closeOverlays() }
+                    )
+                }
+                "clipboard" -> {
                     InKeyboardClipboardView(
                         clips = clips,
                         palette = palette,
                         totalHeight = totalBodyHeight,
                         onClipClick = { clipText ->
                             onKeyClick(clipText)
-                            state.isClipboardOpen = false
+                            state.closeOverlays()
                         },
                         onDeleteClip = onDeleteClip,
                         onClearAll = onClearAllClips,
-                        onClose = { state.isClipboardOpen = false }
+                        onClose = { state.closeOverlays() }
                     )
                 }
-                isNumPad -> {
+                "numpad" -> {
                     DedicatedNumberPadView(
                         palette = palette,
                         keyHeight = keyHeight,
@@ -109,7 +179,7 @@ fun ComposeKeyboardView(
                         onBackspace = onBackspace,
                         onEnter = onEnter,
                         onSpace = onSpace,
-                        onClose = { state.isNumberPadMode = false }
+                        onClose = { state.closeOverlays() }
                     )
                 }
                 else -> {
@@ -133,7 +203,7 @@ fun ComposeKeyboardView(
 @Composable
 private fun StandardKeyboardMatrix(
     state: KeyboardLayoutState,
-    palette: com.openbangla.keyboard.ui.theme.KeyboardPalette,
+    palette: KeyboardPalette,
     keyHeight: Dp,
     onKeyClick: (String) -> Unit,
     onBackspace: () -> Unit,
@@ -227,7 +297,7 @@ private fun StandardKeyboardMatrix(
             }
         }
 
-        // Row 2 (Centered with subtle side spacers if needed)
+        // Row 2 (Centered with side spacing if needed)
         if (matrix.size > 1) {
             Row(
                 modifier = Modifier
@@ -260,7 +330,7 @@ private fun StandardKeyboardMatrix(
             }
         }
 
-        // Row 3 (Shift on left, characters in middle, Backspace on right)
+        // Row 3 (Shift, characters, Backspace)
         if (matrix.size > 2) {
             Row(
                 modifier = Modifier
@@ -334,7 +404,7 @@ private fun StandardKeyboardMatrix(
             }
         }
 
-        // Row 4: Bottom Action Bar
+        // Row 4: Bottom Action Bar (Symbols, Numpad, Emoji, Comma, Space, Period, Enter)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -342,7 +412,7 @@ private fun StandardKeyboardMatrix(
         ) {
             // Symbols toggle
             KeyButton(
-                modifier = Modifier.weight(1.2f),
+                modifier = Modifier.weight(1.1f),
                 label = if (state.isSymbolsMode) "ABC" else "?123",
                 backgroundColor = palette.keyActionBackground,
                 textColor = palette.textPrimary,
@@ -352,7 +422,7 @@ private fun StandardKeyboardMatrix(
 
             // Dedicated Number Pad button
             KeyButton(
-                modifier = Modifier.weight(0.9f),
+                modifier = Modifier.weight(0.85f),
                 label = "123",
                 backgroundColor = palette.keyActionBackground,
                 textColor = palette.textPrimary,
@@ -360,9 +430,19 @@ private fun StandardKeyboardMatrix(
                 onClick = { state.toggleNumberPad() }
             )
 
+            // Direct Emoji Button
+            KeyButton(
+                modifier = Modifier.weight(0.85f),
+                label = "😊",
+                backgroundColor = palette.keyActionBackground,
+                textColor = palette.textPrimary,
+                height = keyHeight,
+                onClick = { state.toggleEmojiKeyboard() }
+            )
+
             // Comma
             KeyButton(
-                modifier = Modifier.weight(0.8f),
+                modifier = Modifier.weight(0.75f),
                 label = ",",
                 backgroundColor = palette.keyActionBackground,
                 textColor = palette.textPrimary,
@@ -378,7 +458,7 @@ private fun StandardKeyboardMatrix(
                 TypingLayout.AVRO -> "Avro"
             }
             SpaceKeyButton(
-                modifier = Modifier.weight(3.8f),
+                modifier = Modifier.weight(3.4f),
                 label = spaceLabel,
                 backgroundColor = palette.keyBackground,
                 textColor = palette.textPrimary.copy(alpha = 0.85f),
@@ -390,7 +470,7 @@ private fun StandardKeyboardMatrix(
 
             // Period
             KeyButton(
-                modifier = Modifier.weight(0.8f),
+                modifier = Modifier.weight(0.75f),
                 label = ".",
                 backgroundColor = palette.keyActionBackground,
                 textColor = palette.textPrimary,
@@ -400,7 +480,7 @@ private fun StandardKeyboardMatrix(
 
             // Enter / Action Key
             KeyButton(
-                modifier = Modifier.weight(1.3f),
+                modifier = Modifier.weight(1.2f),
                 label = "⏎",
                 backgroundColor = palette.accent,
                 textColor = palette.background,
@@ -422,8 +502,13 @@ fun SpaceKeyButton(
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    var isPressed by remember { mutableStateOf(false) }
+
+    val displayBgColor = if (isPressed) {
+        backgroundColor.copy(alpha = 0.7f)
+    } else {
+        backgroundColor
+    }
 
     Box(
         modifier = modifier
@@ -431,19 +516,21 @@ fun SpaceKeyButton(
             .height(height)
             .shadow(elevation = if (isPressed) 0.5.dp else 1.5.dp, shape = RoundedCornerShape(6.dp))
             .clip(RoundedCornerShape(6.dp))
-            .background(if (isPressed) backgroundColor.copy(alpha = 0.7f) else backgroundColor)
+            .background(displayBgColor)
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
+                    isPressed = true
                     var accumulatedX = 0f
-                    var triggered = false
+                    var swipeTriggered = false
 
                     while (true) {
                         val event = awaitPointerEvent()
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
 
                         if (!change.pressed) {
-                            if (!triggered && kotlin.math.abs(accumulatedX) < 30f) {
+                            isPressed = false
+                            if (!swipeTriggered) {
                                 onClick()
                             }
                             break
@@ -452,40 +539,25 @@ fun SpaceKeyButton(
                         val dx = change.position.x - change.previousPosition.x
                         accumulatedX += dx
 
-                        if (!triggered) {
-                            if (accumulatedX < -45f) {
-                                triggered = true
-                                onSwipeLeft()
-                            } else if (accumulatedX > 45f) {
-                                triggered = true
-                                onSwipeRight()
-                            }
+                        if (!swipeTriggered && accumulatedX > 50f) {
+                            swipeTriggered = true
+                            isPressed = false
+                            onSwipeRight()
+                        } else if (!swipeTriggered && accumulatedX < -50f) {
+                            swipeTriggered = true
+                            isPressed = false
+                            onSwipeLeft()
                         }
                     }
                 }
             },
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "‹ ",
-                color = textColor.copy(alpha = 0.4f),
-                fontSize = 13.sp
-            )
-            Text(
-                text = label,
-                color = textColor,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = " ›",
-                color = textColor.copy(alpha = 0.4f),
-                fontSize = 13.sp
-            )
-        }
+        Text(
+            text = "‹ $label ›",
+            color = textColor,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }

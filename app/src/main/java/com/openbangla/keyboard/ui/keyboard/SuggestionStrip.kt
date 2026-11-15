@@ -1,6 +1,5 @@
 package com.openbangla.keyboard.ui.keyboard
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -14,30 +13,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.Dialpad
-import androidx.compose.material.icons.filled.FactCheck
-import androidx.compose.material.icons.filled.Keyboard
-import androidx.compose.material.icons.filled.Mood
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,10 +35,9 @@ fun SuggestionStrip(
     palette: KeyboardPalette,
     layoutMode: TypingLayout,
     onSuggestionClick: (String) -> Unit,
-    onActionClick: (String) -> Unit
+    onMenuClick: () -> Unit,
+    onLayoutBadgeClick: () -> Unit
 ) {
-    var showToolbarMenu by remember { mutableStateOf(false) }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -64,74 +48,39 @@ fun SuggestionStrip(
     ) {
         // Left side Menu / Toolbar toggle button (Ridmik 4-dot / Apps icon)
         IconButton(
-            onClick = { showToolbarMenu = !showToolbarMenu },
+            onClick = onMenuClick,
             modifier = Modifier.size(38.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Apps,
-                contentDescription = "Keyboard Tools",
-                tint = if (showToolbarMenu) palette.accent else palette.textPrimary.copy(alpha = 0.75f),
+                contentDescription = "Keyboard Options",
+                tint = palette.textPrimary.copy(alpha = 0.85f),
                 modifier = Modifier.size(20.dp)
             )
         }
 
         Spacer(modifier = Modifier.width(2.dp))
 
-        // Center Content: Either expanded Toolbar or Candidates
-        if (showToolbarMenu || suggestions.isEmpty()) {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ToolbarIcon(Icons.Default.ColorLens, "Theme", palette) {
-                    showToolbarMenu = false
-                    onActionClick("theme")
-                }
-                ToolbarIcon(Icons.Default.Dialpad, "Number Pad", palette) {
-                    showToolbarMenu = false
-                    onActionClick("numpad")
-                }
-                ToolbarIcon(Icons.Default.Mood, "Stickers", palette) {
-                    showToolbarMenu = false
-                    onActionClick("store")
-                }
-                ToolbarIcon(Icons.Default.Assignment, "Clipboard", palette) {
-                    showToolbarMenu = false
-                    onActionClick("clipboard")
-                }
-                ToolbarIcon(Icons.Default.Translate, "Translate", palette) {
-                    showToolbarMenu = false
-                    onActionClick("translate")
-                }
-                ToolbarIcon(Icons.Default.FactCheck, "Fact Check", palette) {
-                    showToolbarMenu = false
-                    onActionClick("factcheck")
-                }
-                ToolbarIcon(Icons.Default.Settings, "Settings", palette) {
-                    showToolbarMenu = false
-                    onActionClick("settings")
-                }
-            }
-        } else {
-            // Suggestion Chips (First candidate is primary)
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        // Center Content: Predictive suggestions
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (suggestions.isEmpty()) {
+                // Empty suggestion strip placeholder
+                Spacer(modifier = Modifier.weight(1f))
+            } else {
                 suggestions.forEachIndexed { index, suggestion ->
                     val isFirst = index == 0
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (isFirst) palette.accent.copy(alpha = 0.2f) else palette.keyBackground)
+                            .background(if (isFirst) palette.accent.copy(alpha = 0.25f) else palette.keyBackground)
                             .clickable { onSuggestionClick(suggestion) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -147,13 +96,13 @@ fun SuggestionStrip(
 
         Spacer(modifier = Modifier.width(2.dp))
 
-        // Right side Quick Layout Switcher button
+        // Right side Quick Layout Switcher button (badge)
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(palette.keyActionBackground.copy(alpha = 0.6f))
-                .clickable { onActionClick("layout_switch") }
-                .padding(horizontal = 8.dp, vertical = 5.dp),
+                .background(palette.keyActionBackground.copy(alpha = 0.7f))
+                .clickable(onClick = onLayoutBadgeClick)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             contentAlignment = Alignment.Center
         ) {
             val label = when (layoutMode) {
@@ -164,30 +113,10 @@ fun SuggestionStrip(
             }
             Text(
                 text = label,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = palette.accent
             )
         }
-    }
-}
-
-@Composable
-private fun ToolbarIcon(
-    imageVector: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    palette: KeyboardPalette,
-    onClick: () -> Unit
-) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier.size(36.dp)
-    ) {
-        Icon(
-            imageVector = imageVector,
-            contentDescription = contentDescription,
-            tint = palette.textPrimary.copy(alpha = 0.8f),
-            modifier = Modifier.size(19.dp)
-        )
     }
 }

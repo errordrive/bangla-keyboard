@@ -14,11 +14,12 @@ import kotlinx.coroutines.flow.map
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
 
 enum class KeyboardTheme(val id: String, val displayName: String) {
+    RIDMIK_GREEN("ridmik_green", "Ridmik Green"),
     LIGHT("light", "Classic Light"),
-    DARK("dark", "Modern Dark"),
-    AMOLED("amoled", "OLED Pure Black"),
-    EMERALD("emerald", "Bangla Emerald Green"),
-    SLATE("slate", "Deep Slate")
+    DARK("dark", "Classic Dark"),
+    AMOLED("amoled", "Pure Dark"),
+    DARK_SILVER("dark_silver", "Dark Silver"),
+    MIDNIGHT_BLACK("midnight_black", "Midnight Black")
 }
 
 enum class TypingLayout(val id: String, val displayName: String) {
@@ -42,8 +43,12 @@ class UserPreferences(private val context: Context) {
     }
 
     val themeFlow: Flow<KeyboardTheme> = context.dataStore.data.map { preferences ->
-        val themeId = preferences[KEY_THEME] ?: KeyboardTheme.LIGHT.id
-        KeyboardTheme.entries.find { it.id == themeId } ?: KeyboardTheme.LIGHT
+        val themeId = preferences[KEY_THEME] ?: KeyboardTheme.RIDMIK_GREEN.id
+        when (themeId) {
+            "emerald" -> KeyboardTheme.RIDMIK_GREEN
+            "slate" -> KeyboardTheme.MIDNIGHT_BLACK
+            else -> KeyboardTheme.entries.find { it.id == themeId } ?: KeyboardTheme.RIDMIK_GREEN
+        }
     }
 
     val keyboardHeightFlow: Flow<Float> = context.dataStore.data.map { preferences ->

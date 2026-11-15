@@ -11,6 +11,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
@@ -212,7 +213,26 @@ class BanglaInputMethodService : InputMethodService(),
                             onEnter = { handleEnter() },
                             onSpace = { handleSpace() },
                             onSuggestionClick = { suggestion -> commitSuggestion(suggestion) },
-                            onActionClick = { action -> handleActionClick(action) },
+                            onLayoutSwitch = { cycleLayout(true) },
+                            onSelectTheme = { theme ->
+                                serviceScope.launch {
+                                    preferences.setTheme(theme)
+                                }
+                            },
+                            onOpenTranslate = { launchActivity(DownloadOfflineTranslationActivity::class.java) },
+                            onOpenFactCheck = { launchActivity(FactCheckActivity::class.java) },
+                            onOpenStore = { launchActivity(StickerStoreActivity::class.java) },
+                            onOpenSettings = { launchActivity(SettingsActivity::class.java) },
+                            onMoveCursorLeft = { selecting -> handleCursorMove(KeyEvent.KEYCODE_DPAD_LEFT, selecting) },
+                            onMoveCursorRight = { selecting -> handleCursorMove(KeyEvent.KEYCODE_DPAD_RIGHT, selecting) },
+                            onMoveCursorUp = { selecting -> handleCursorMove(KeyEvent.KEYCODE_DPAD_UP, selecting) },
+                            onMoveCursorDown = { selecting -> handleCursorMove(KeyEvent.KEYCODE_DPAD_DOWN, selecting) },
+                            onMoveHome = { selecting -> handleMoveHome(selecting) },
+                            onMoveEnd = { selecting -> handleMoveEnd(selecting) },
+                            onSelectAll = { handleSelectAll() },
+                            onCopy = { handleCopy() },
+                            onCut = { handleCut() },
+                            onPaste = { handlePaste() },
                             onDeleteClip = { clip -> serviceScope.launch(Dispatchers.IO) { clipDao.deleteClip(clip) } },
                             onClearAllClips = { serviceScope.launch(Dispatchers.IO) { clipDao.clearAllUnpinned() } },
                             onSwipeLeft = { cycleLayout(true) },
@@ -462,11 +482,12 @@ class BanglaInputMethodService : InputMethodService(),
             "settings" -> launchActivity(SettingsActivity::class.java)
             "theme" -> {
                 val nextTheme = when (layoutState.theme) {
-                    KeyboardTheme.EMERALD -> KeyboardTheme.DARK
+                    KeyboardTheme.RIDMIK_GREEN -> KeyboardTheme.LIGHT
+                    KeyboardTheme.LIGHT -> KeyboardTheme.DARK
                     KeyboardTheme.DARK -> KeyboardTheme.AMOLED
-                    KeyboardTheme.AMOLED -> KeyboardTheme.SLATE
-                    KeyboardTheme.SLATE -> KeyboardTheme.LIGHT
-                    KeyboardTheme.LIGHT -> KeyboardTheme.EMERALD
+                    KeyboardTheme.AMOLED -> KeyboardTheme.DARK_SILVER
+                    KeyboardTheme.DARK_SILVER -> KeyboardTheme.MIDNIGHT_BLACK
+                    KeyboardTheme.MIDNIGHT_BLACK -> KeyboardTheme.RIDMIK_GREEN
                 }
                 serviceScope.launch {
                     preferences.setTheme(nextTheme)
@@ -476,6 +497,69 @@ class BanglaInputMethodService : InputMethodService(),
                 cycleLayout(true)
             }
         }
+    }
+
+    private fun handleCursorMove(direction: Int, isSelecting: Boolean) {
+        performHapticFeedback()
+        val ic = currentInputConnection ?: return
+        if (isSelecting) {
+            val metaState = KeyEvent.META_SHIFT_ON
+            ic.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_DOWN, direction, 0, metaState))
+            ic.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_UP, direction, 0, metaState))
+        } else {
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, direction))
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, direction))
+        }
+    }
+
+    private fun handleMoveHome(isSelecting: Boolean) {
+        performHapticFeedback()
+        val ic = currentInputConnection ?: return
+        if (isSelecting) {
+            val metaState = KeyEvent.META_SHIFT_ON
+            ic.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_HOME, 0, metaState))
+            ic.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MOVE_HOME, 0, metaState))
+        } else {
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_HOME))
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MOVE_HOME))
+        }
+    }
+
+    private fun handleMoveEnd(isSelecting: Boolean) {
+        performHapticFeedback()
+        val ic = currentInputConnection ?: return
+        if (isSelecting) {
+            val metaState = KeyEvent.META_SHIFT_ON
+            ic.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_END, 0, metaState))
+            ic.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MOVE_END, 0, metaState))
+        } else {
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_END))
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MOVE_END))
+        }
+    }
+
+    private fun handleSelectAll() {
+        performHapticFeedback()
+        val ic = currentInputConnection ?: return
+        ic.performContextMenuAction(android.R.id.selectAll)
+    }
+
+    private fun handleCopy() {
+        performHapticFeedback()
+        val ic = currentInputConnection ?: return
+        ic.performContextMenuAction(android.R.id.copy)
+    }
+
+    private fun handleCut() {
+        performHapticFeedback()
+        val ic = currentInputConnection ?: return
+        ic.performContextMenuAction(android.R.id.cut)
+    }
+
+    private fun handlePaste() {
+        performHapticFeedback()
+        val ic = currentInputConnection ?: return
+        ic.performContextMenuAction(android.R.id.paste)
     }
 
     private fun cycleLayout(forward: Boolean) {

@@ -9,31 +9,23 @@ import androidx.compose.ui.graphics.Color
 import com.openbangla.keyboard.data.preferences.KeyboardTheme
 
 private val DarkColorScheme = darkColorScheme(
-    primary = EmeraldPrimary,
-    onPrimary = EmeraldOnPrimary,
-    primaryContainer = EmeraldContainer,
-    onPrimaryContainer = EmeraldOnContainer,
-    background = DarkBackground,
-    surface = DarkSurface,
-    onSurface = DarkOnSurface
+    primary = RidmikGreenPrimary,
+    onPrimary = Color.White,
+    primaryContainer = RidmikGreenAccent,
+    onPrimaryContainer = Color(0xFF002114),
+    background = ClassicDarkBg,
+    surface = ClassicDarkBg,
+    onSurface = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = EmeraldPrimary,
-    onPrimary = EmeraldOnPrimary,
-    primaryContainer = EmeraldContainer,
-    onPrimaryContainer = EmeraldOnContainer,
-    background = LightBackground,
-    surface = LightSurface,
-    onSurface = LightOnSurface
-)
-
-private val AmoledColorScheme = darkColorScheme(
-    primary = EmeraldPrimary,
-    onPrimary = EmeraldOnPrimary,
-    background = AmoledBackground,
-    surface = AmoledBackground,
-    onSurface = AmoledOnSurface
+    primary = RidmikGreenPrimary,
+    onPrimary = Color.White,
+    primaryContainer = RidmikGreenAccent,
+    onPrimaryContainer = Color(0xFF002114),
+    background = ClassicLightBg,
+    surface = ClassicLightBg,
+    onSurface = ClassicLightText
 )
 
 data class KeyboardPalette(
@@ -46,40 +38,47 @@ data class KeyboardPalette(
 
 fun getKeyboardPalette(theme: KeyboardTheme): KeyboardPalette {
     return when (theme) {
+        KeyboardTheme.RIDMIK_GREEN -> KeyboardPalette(
+            background = RidmikGreenPrimary,
+            keyBackground = RidmikGreenKeyBg,
+            keyActionBackground = RidmikGreenKeyActionBg,
+            textPrimary = Color.White,
+            accent = RidmikGreenAccent
+        )
         KeyboardTheme.LIGHT -> KeyboardPalette(
-            background = Color(0xFFECEFF1),
-            keyBackground = Color(0xFFFFFFFF),
-            keyActionBackground = Color(0xFFCFD8DC),
-            textPrimary = Color(0xFF263238),
-            accent = EmeraldPrimary
+            background = ClassicLightBg,
+            keyBackground = ClassicLightKeyBg,
+            keyActionBackground = ClassicLightActionBg,
+            textPrimary = ClassicLightText,
+            accent = Color(0xFF26A69A)
         )
         KeyboardTheme.DARK -> KeyboardPalette(
-            background = Color(0xFF1E2124),
-            keyBackground = Color(0xFF2F3136),
-            keyActionBackground = Color(0xFF36393F),
-            textPrimary = Color(0xFFFFFFFF),
-            accent = EmeraldContainer
+            background = ClassicDarkBg,
+            keyBackground = ClassicDarkKeyBg,
+            keyActionBackground = ClassicDarkActionBg,
+            textPrimary = Color.White,
+            accent = RidmikGreenAccent
         )
         KeyboardTheme.AMOLED -> KeyboardPalette(
-            background = Color(0xFF000000),
-            keyBackground = Color(0xFF141414),
-            keyActionBackground = Color(0xFF242424),
-            textPrimary = Color(0xFFFFFFFF),
-            accent = EmeraldContainer
+            background = PureDarkBg,
+            keyBackground = PureDarkKeyBg,
+            keyActionBackground = PureDarkActionBg,
+            textPrimary = Color.White,
+            accent = RidmikGreenAccent
         )
-        KeyboardTheme.EMERALD -> KeyboardPalette(
-            background = Color(0xFF004D36),
-            keyBackground = Color(0xFF006C4C),
-            keyActionBackground = Color(0xFF00583E),
-            textPrimary = Color(0xFFFFFFFF),
-            accent = EmeraldContainer
+        KeyboardTheme.DARK_SILVER -> KeyboardPalette(
+            background = DarkSilverBg,
+            keyBackground = DarkSilverKeyBg,
+            keyActionBackground = DarkSilverActionBg,
+            textPrimary = DarkSilverText,
+            accent = DarkSilverText
         )
-        KeyboardTheme.SLATE -> KeyboardPalette(
-            background = Color(0xFF1E293B),
-            keyBackground = Color(0xFF334155),
-            keyActionBackground = Color(0xFF475569),
-            textPrimary = Color(0xFFF8FAFC),
-            accent = Color(0xFF38BDF8)
+        KeyboardTheme.MIDNIGHT_BLACK -> KeyboardPalette(
+            background = MidnightBlackBg,
+            keyBackground = MidnightBlackKeyBg,
+            keyActionBackground = MidnightBlackActionBg,
+            textPrimary = Color.White,
+            accent = MidnightBlackAccent
         )
     }
 }

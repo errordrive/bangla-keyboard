@@ -23,10 +23,13 @@ class KeyboardLayoutState {
     var isMoreSymbolsMode by mutableStateOf(false)
     var isNumberPadMode by mutableStateOf(false)
     var isClipboardOpen by mutableStateOf(false)
+    var isMoreOptionsOpen by mutableStateOf(false)
+    var isTextEditingOpen by mutableStateOf(false)
+    var isEmojiKeyboardOpen by mutableStateOf(false)
 
     var composingText by mutableStateOf("")
     var suggestions by mutableStateOf<List<String>>(emptyList())
-    var theme by mutableStateOf(KeyboardTheme.LIGHT)
+    var theme by mutableStateOf(KeyboardTheme.RIDMIK_GREEN)
     var heightRatio by mutableFloatStateOf(1.30f)
     var autoCorrectEnabled by mutableStateOf(true)
     var dragToTypeShiftEnabled by mutableStateOf(true)
@@ -56,8 +59,7 @@ class KeyboardLayoutState {
     fun toggleSymbols() {
         isSymbolsMode = !isSymbolsMode
         isMoreSymbolsMode = false
-        isNumberPadMode = false
-        isClipboardOpen = false
+        closeOverlays()
     }
 
     fun toggleMoreSymbols() {
@@ -65,18 +67,41 @@ class KeyboardLayoutState {
     }
 
     fun toggleNumberPad() {
-        isNumberPadMode = !isNumberPadMode
-        isClipboardOpen = false
+        val target = !isNumberPadMode
+        closeOverlays()
+        isNumberPadMode = target
     }
 
     fun toggleClipboard() {
-        isClipboardOpen = !isClipboardOpen
-        isNumberPadMode = false
+        val target = !isClipboardOpen
+        closeOverlays()
+        isClipboardOpen = target
+    }
+
+    fun toggleMoreOptions() {
+        val target = !isMoreOptionsOpen
+        closeOverlays()
+        isMoreOptionsOpen = target
+    }
+
+    fun toggleTextEditing() {
+        val target = !isTextEditingOpen
+        closeOverlays()
+        isTextEditingOpen = target
+    }
+
+    fun toggleEmojiKeyboard() {
+        val target = !isEmojiKeyboardOpen
+        closeOverlays()
+        isEmojiKeyboardOpen = target
     }
 
     fun closeOverlays() {
         isClipboardOpen = false
         isNumberPadMode = false
+        isMoreOptionsOpen = false
+        isTextEditingOpen = false
+        isEmojiKeyboardOpen = false
     }
 
     fun switchLayout(forward: Boolean = true) {
@@ -90,7 +115,6 @@ class KeyboardLayoutState {
         layoutMode = cycle[nextIndex]
         shiftMode = ShiftMode.OFF
         isSymbolsMode = false
-        isNumberPadMode = false
-        isClipboardOpen = false
+        closeOverlays()
     }
 }
